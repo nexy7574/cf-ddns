@@ -29,7 +29,6 @@ parser.add_argument(
     "--create-is-proxied",
     action="store_true",
     default=False,
-    metavar="create_is_cf_proxy"
 )
 parser.add_argument(
     "--exit-mode",
@@ -67,7 +66,7 @@ def main():
             break
     else:
         assert create_dns_record(
-            zone_id, name=args.record_name, content=..., proxied=args.create_is_cf_proxy
+            zone_id, name=args.record_name, content=..., proxied=args.create_is_proxied,
         ), "Failed to create a record"
 
 

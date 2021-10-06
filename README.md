@@ -5,7 +5,7 @@ CloudFlare-based dynamic DNS stuff
 ```shell
 git clone https://github.com/EEKIM10/cf-ddns
 cd cf-ddns
-python3 -m pip install -U --user requests python-dotenv pip
+python3 -m pip install -U --user requests rich python-dotenv pip
 ```
 Once you've done that, you can either
 ### Run interactively

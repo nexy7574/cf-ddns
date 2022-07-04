@@ -1,13 +1,15 @@
 import os
 from typing import List, Literal, Tuple
 
-from requests import Session
+from httpx import Client as Session
 from rich.console import Console
 
 try:
     import dotenv
 
     dotenv.load_dotenv()
+    os.environ.setdefault("DEBUG_LEVEL", "0")
+    os.environ.setdefault("CF_TOKEN", "")
 except ImportError:
     dotenv = None  # linter exclusively
     os.environ["DEBUG_LEVEL"] = "0"
@@ -29,18 +31,15 @@ BASE = "https://api.cloudflare.com/client/v4"
 console = Console()
 session = Session()
 headers = {"Accept": "application/json", "Content-Type": "application/json"}
+session.headers = headers
 
 
-def request(
-    method: Literal["GET", "POST", "PATCH"], endpoint: str, payload: dict = None
-) -> dict:
+def request(method: Literal["GET", "POST", "PATCH"], endpoint: str, payload: dict = None) -> dict:
     if headers.get("Authorization") is None:
         raise ValueError("Authorisation has not completed yet.")
     assert isinstance(payload, dict) or payload is None
     if int(os.environ["DEBUG_LEVEL"]) > 0:
-        console.print(
-            f"[i dim]debug: {method} {BASE+endpoint} (payload: {payload!s})[/]"
-        )
+        console.print(f"[i dim]debug: {method} {BASE+endpoint} (payload: {payload!s})[/]")
     response = session.request(method, BASE + endpoint, json=payload, headers=headers)
     content_type = response.headers.get("Content-Type", "text/plain").lower()
     if content_type != "application/json":
@@ -69,9 +68,7 @@ def authorise(token: str = ...) -> bool:
     :returns: Boolean, indicating if authorisation was successful.
     """
     if token is ...:
-        assert os.getenv(
-            "CF_TOKEN"
-        ), "No cloudflare token found in the current environment. Please set CF_TOKEN"
+        assert os.getenv("CF_TOKEN"), "No cloudflare token found in the current environment. Please set CF_TOKEN"
         token = os.environ["CF_TOKEN"]
     # Special method that does not use `request` as we haven't set the headers yet.
     if int(os.environ["DEBUG_LEVEL"]) > 0:
@@ -93,10 +90,7 @@ def get_ip() -> str:
     """Fetches the current computer's public IP address"""
     service = os.getenv("IP_SERVICE", "https://api.ipify.org")
     ip_response = session.get(service)
-    if (
-        ip_response.status_code != 200
-        or ip_response.headers.get("content-type", "none/none") != "text/plain"
-    ):
+    if ip_response.status_code != 200 or ip_response.headers.get("content-type", "none/none") != "text/plain":
         raise TypeError(
             "Content type %r is not permitted when fetching IPs. (Requested: %s - likely sourced from the IP_SERVICE env variable.)"
             % (ip_response.headers["content-type"], service)
@@ -119,9 +113,7 @@ def get_zone_dns_records(zone_id: str, page: int = 1) -> Tuple[List[dict], int]:
     :param zone_id: The zone identifier.
     :param page: The page to request. By default, only 20 entries are fetched per request.
     """
-    response = request(
-        "GET", "/zones/%s/dns_records?page=%s&per_page=20" % (zone_id, page)
-    )
+    response = request("GET", "/zones/%s/dns_records?page=%s&per_page=20" % (zone_id, page))
     if response.pop("success", False) is True:
         if response["result_info"]["total_count"] == 0:
             # Max page reached

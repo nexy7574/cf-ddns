@@ -59,6 +59,8 @@ def main(
     )
     with console.status("Loading") as status:
         status.update("Verifying token")
+        if verbose:
+            console.log("GET /user/tokens/verify")
         response = client.get("/user/tokens/verify")
         if verbose:
             console.print_json(response.text)
@@ -70,6 +72,8 @@ def main(
         if not ip.split(".")[0].isdigit():  # likely a URL
             status.update("Getting external IP...")
             # We use httpx.get so that we don't leak client credentials.
+            if verbose:
+                console.log(f"GET {ip}")
             response = httpx.get(ip)
             if verbose:
                 console.print(response.text)
@@ -80,6 +84,8 @@ def main(
             unless_a_record_is = ip
 
         status.update("Loading zone records")
+        if verbose:
+            console.log("GET /zones/%s/dns_records" % zone)
         response = client.get("/zones/" + zone + "/dns_records", params={"per_page": 5000})
         if verbose:
             console.print_json(response.text)
@@ -115,6 +121,8 @@ def main(
             return
 
     for record_id in track(to_edit, console=console, description="Editing zone records"):
+        if verbose:
+            console.log("PATCH /zones/{}/dns_records/{} | DATA=%s".format(zone, record_id) % ip)
         response = client.patch("/zones/{}/dns_records/{}".format(zone, record_id), json={"content": ip})
         if verbose:
             console.print_json(response.text)

@@ -1,6 +1,7 @@
 from typing import List, TYPE_CHECKING
 
 import httpx
+import os
 import click
 from rich.console import Console
 from rich.prompt import Confirm
@@ -39,6 +40,7 @@ class ZoneRecord(dict):
 @click.option("--unless-a-record-is", "-U", default=None)
 @click.option("--yes", "-y", default=False, is_flag=True)
 @click.option("--verbose", type=bool, default=False, is_flag=True)
+@click.option("--timeout", type=float, default=30.0)
 @click.argument("names", nargs=-1)
 def main(
     *,
@@ -50,12 +52,16 @@ def main(
     yes: bool = False,
     verbose: bool = False,
     unless_a_record_is: str = None,
+    timeout: float = 30.0
 ):
     names = [name.lower() for name in names]
     console = Console()
     client = httpx.Client(
         base_url="https://api.cloudflare.com/client/v4",
         headers={"Authorization": "Bearer " + token, "Accept": "application/json"},
+        timeout=httpx.Timeout(
+            timeout if timeout > 0 else None
+        )
     )
     with console.status("Loading") as status:
         status.update("Verifying token")
